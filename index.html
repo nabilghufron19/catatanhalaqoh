@@ -420,11 +420,16 @@ async function saveNoteBackend(note, notebook) {
 async function deleteNoteBackend(id) {
   try {
     const res = await fetch(`${NOTES_API_URL}/${encodeURIComponent(id)}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error(`Status ${res.status}`);
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Status ${res.status}${text ? `: ${text}` : ''}`);
+    }
     backendEnabled = true;
+    return true;
   } catch (err) {
     backendEnabled = false;
     console.warn('Gagal hapus dari Neon:', err.message);
+    throw err;
   }
 }
 
@@ -688,23 +693,40 @@ function closeDeleteModal() {
   document.getElementById('deleteModal').classList.remove('show');
   pendingDeleteId = null;
 }
-function confirmDelete() {
-  if (!pendingDeleteId) return;
+async function confirmDelete() {
+  const noteId = pendingDeleteId;
+  if (!noteId) return;
+
+  const result = findNoteById(noteId);
+  if (!result.note || !result.notebook) {
+    closeDeleteModal();
+    return;
+  }
+
+  closeDeleteModal();
+  showToast('Menghapus catatan...');
+
+  try {
+    await deleteNoteBackend(noteId);
+  } catch (err) {
+    showToast('Gagal hapus dari Neon: ' + err.message);
+    console.error('deleteNoteBackend failed', err);
+    return;
+  }
+
   const nbs = getNotebooks();
-  const result = findNoteById(pendingDeleteId);
-  if (!result.notebook) return;
-  nbs[result.notebook] = (nbs[result.notebook] || []).filter(n => n.id !== pendingDeleteId);
+  nbs[result.notebook] = (nbs[result.notebook] || []).filter(n => n.id !== noteId);
   saveNotebooks(nbs);
-  if (currentNoteId === pendingDeleteId) {
+
+  if (currentNoteId === noteId) {
     currentNoteId = null;
     showEmptyEditor();
     chatHistory = [];
     renderChat();
   }
-  closeDeleteModal();
+
   renderPagesList();
   showToast('🗑️ Catatan dihapus');
-  deleteNoteBackend(pendingDeleteId);
 }
 
 // ── FILTER ────────────────────────────────────────────────
@@ -719,6 +741,10 @@ function filterPages(q) {
 }
 
 // ── EXPORT WORD (current note) ────────────────────────────
+function safeFilename(text) {
+  return text.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_').slice(0, 120);
+}
+
 function exportCurrentWord() {
   if (!currentNoteId) { showToast('Pilih catatan dulu'); return; }
   const result = findNoteById(currentNoteId);
@@ -731,7 +757,8 @@ function exportCurrentWord() {
   if (bodyEl)  note.body  = bodyEl.value;
   if (titleEl) note.title = titleEl.value || 'Tanpa Judul';
 
-  exportNotesToDocx([note], `Catatan_${note.title.replace(/\s+/g,'_')}`);
+  const filename = `Catatan_${safeFilename(note.title || 'Tanpa_Judul')}`;
+  exportNotesToDocx([note], filename);
 }
 
 // ── EXPORT WORD (all notebooks) ───────────────────────────
@@ -746,8 +773,12 @@ function exportAllWord() {
 }
 
 function exportNotesToDocx(notes, filename) {
+  if (typeof docx === 'undefined' || !docx.Document || !docx.Packer || !docx.Paragraph || !docx.TextRun || !docx.HeadingLevel || !docx.AlignmentType || !docx.BorderStyle) {
+    return exportNotesAsHtmlDoc(notes, filename);
+  }
+
   const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
-          BorderStyle, PageNumber, Header, Footer } = docx;
+          BorderStyle } = docx;
 
   const children = [];
 
@@ -847,9 +878,27 @@ function exportNotesToDocx(notes, filename) {
     saveAs(blob, filename + '.docx');
     showToast('📄 File Word berhasil diunduh');
   }).catch(e => {
-    showToast('Gagal export: ' + e.message);
-    console.error(e);
+    console.warn('docx export failed, fallback to .doc:', e);
+    exportNotesAsHtmlDoc(notes, filename);
   });
+}
+
+function exportNotesAsHtmlDoc(notes, filename) {
+  const htmlSections = notes.map(note => {
+    const tags = note.tags && note.tags.length ? `<p><strong>Topik:</strong> ${note.tags.join(', ')}</p>` : '';
+    return `
+      <h1>${note.title || 'Tanpa Judul'}</h1>
+      <p><strong>Tanggal:</strong> ${note.dateFull || '-'}</p>
+      ${tags}
+      <div>${(note.body || '').replace(/\n/g, '<br>')}</div>
+      <hr />
+    `;
+  });
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${filename}</title></head><body>${htmlSections.join('')}</body></html>`;
+  const blob = new Blob([html], { type: 'application/msword' });
+  saveAs(blob, filename + '.doc');
+  showToast('📄 File Word berhasil diunduh (fallback .doc)');
 }
 
 // ── AI PANEL ──────────────────────────────────────────────
