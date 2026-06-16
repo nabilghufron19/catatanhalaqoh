@@ -1,10 +1,22 @@
 export async function onRequest(context) {
   const { request, env } = context;
+  const apiKey = env.MISTRAL_API_KEY;
+
+  if (request.method === 'GET') {
+    return new Response(JSON.stringify({
+      status: apiKey ? 'ok' : 'error',
+      mistralKeyConfigured: Boolean(apiKey),
+      message: apiKey ? 'MISTRAL_API_KEY sudah terpasang.' : 'Setel MISTRAL_API_KEY di Cloudflare Pages environment variables.'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
   if (request.method !== 'POST') {
     return new Response('Method Not Allowed', { status: 405 });
   }
 
-  const apiKey = env.MISTRAL_API_KEY;
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'MISTRAL_API_KEY tidak dikonfigurasi' }), {
       status: 500,

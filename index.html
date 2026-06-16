@@ -126,6 +126,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 /* STATUS BAR */
 .status-bar{padding:5px 24px;border-top:1px solid var(--border);display:flex;align-items:center;gap:16px;font-size:10px;color:var(--text-light);background:var(--surface);flex-shrink:0;}
 .status-dot{width:6px;height:6px;border-radius:50%;background:#4CAF50;display:inline-block;margin-right:4px;}
+.status-service{padding:2px 6px;border-radius:999px;font-size:10px;font-weight:600;letter-spacing:.04em;}
+.status-ok{background:rgba(76,175,80,.12);color:#2E7D32;}
+.status-error{background:rgba(211,47,47,.12);color:#B71C1C;}
 
 /* EMPTY STATE */
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-light);text-align:center;gap:10px;padding:40px;}
@@ -256,7 +259,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
     <span>·</span>
     <span id="statusWords">0 kata</span>
     <span>·</span>
-    <span>Mistral · mistral-small-latest</span>
+    <span id="statusNeon" class="status-service status-error">Neon: belum dicek</span>
+    <span>·</span>
+    <span id="statusMistral" class="status-service status-error">Mistral: belum dicek</span>
   </div>
 </div>
 
@@ -432,6 +437,40 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function setServiceStatus(elementId, ok, text) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  el.textContent = text;
+  el.classList.toggle('status-ok', ok);
+  el.classList.toggle('status-error', !ok);
+}
+
+async function checkServiceStatus() {
+  try {
+    const [neonRes, aiRes] = await Promise.all([
+      fetch(`${WORKER_BASE_URL}/neon`),
+      fetch(`${WORKER_BASE_URL}/ai`)
+    ]);
+    const neonData = neonRes.ok ? await neonRes.json() : null;
+    const aiData = aiRes.ok ? await aiRes.json() : null;
+
+    const neonOk = neonData?.status === 'ok';
+    const aiOk = aiData?.status === 'ok';
+
+    setServiceStatus('statusNeon', neonOk, neonOk ? 'Neon: terhubung' : `Neon: ${neonData?.message || 'gagal'}`);
+    setServiceStatus('statusMistral', aiOk, aiOk ? 'Mistral: siap' : `Mistral: ${aiData?.message || 'gagal'}`);
+
+    if (!neonOk || !aiOk) {
+      console.warn('Service health check:', { neonData, aiData });
+      showToast('Periksa NEON_DATABASE_URL atau MISTRAL_API_KEY di Pages env.');
+    }
+  } catch (err) {
+    setServiceStatus('statusNeon', false, 'Neon: tidak tersedia');
+    setServiceStatus('statusMistral', false, 'Mistral: tidak tersedia');
+    console.warn('Health check error:', err);
+  }
 }
 
 // ── RENDER PAGES LIST ──────────────────────────────────────
@@ -906,7 +945,7 @@ document.getElementById('aiInput').addEventListener('input', function() {
 
 // ── INIT ──────────────────────────────────────────────────
 (async function initApp() {
-  await syncNotesFromBackend();
+  await Promise.all([syncNotesFromBackend(), checkServiceStatus()]);
   renderPagesList();
   renderChat();
 })();
