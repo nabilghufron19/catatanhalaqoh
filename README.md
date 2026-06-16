@@ -42,9 +42,11 @@ Tambahkan di Cloudflare Pages secrets:
 - Jika ingin, gunakan `npx wrangler pages dev .` untuk menjalankan Pages lokal.
 
 ## Deploy
-- `npm install` untuk menginstall dependency worker.
-- Pastikan `functions/` terdapat di repo dan environment variables aktif.
-- Kunjungi halaman Cloudflare Pages, mulai publish.
+1. Commit semua file ke GitHub termasuk `node_modules/`, `package.json`, dan `package-lock.json`.
+2. Hubungkan repo ke Cloudflare Pages melalui dashboard.
+3. Pages akan mendeteksi `functions/` otomatis dan dependency dari `package.json`.
+4. Set environment variables di Cloudflare Pages: `MISTRAL_API_KEY` dan `NEON_DATABASE_URL`.
+5. Publish—Pages akan langsung serve HTML statis dan worker function di route `/api/`.
 
 ## Notes
 - `index.html` menggunakan localStorage sebagai fallback.
