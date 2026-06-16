@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Catatan Diskusi Guru — Idadiyah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Lora:ital,wght@0,500;1,400&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/build/index.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<style>
+:root {
+  --bg:#F7F6F3; --surface:#FFFFFF; --sidebar-bg:#1E1B18; --sidebar2-bg:#2A2521;
+  --accent:#C5702A; --accent-soft:#F0E0CC; --text:#1A1714; --text-muted:#6B6560;
+  --text-light:#9B9490; --border:#E4E0DB; --border-dark:#3A3530;
+  --ai-bg:#F0EDE8; --tag-bg:#EDE8E2;
+  --shadow:0 1px 4px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
+  --radius:10px; --sidebar-w:220px; --pages-w:230px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;font-size:14px;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:var(--sidebar-bg);display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid var(--border-dark);}
+.sidebar-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border-dark);}
+.sidebar-logo .app-name{font-family:'Lora',serif;font-size:15px;font-weight:500;color:#F0EDE8;letter-spacing:.02em;}
+.sidebar-logo .app-sub{font-size:10px;color:var(--text-light);margin-top:2px;letter-spacing:.04em;text-transform:uppercase;}
+.sidebar-section-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-light);padding:16px 16px 6px;}
+.notebook-item{display:flex;align-items:center;gap:9px;padding:8px 14px;cursor:pointer;border-radius:6px;margin:1px 6px;color:#C8C2BB;font-size:13px;transition:background .15s,color .15s;}
+.notebook-item:hover{background:#2E2924;color:#F0EDE8;}
+.notebook-item.active{background:var(--accent);color:#fff;}
+.nb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.nb-count{margin-left:auto;font-size:10px;background:#3A3530;color:var(--text-light);padding:1px 6px;border-radius:10px;}
+.notebook-item.active .nb-count{background:rgba(255,255,255,.2);color:#fff;}
+.sidebar-divider{height:1px;background:var(--border-dark);margin:10px 12px;}
+.sidebar-action{display:flex;align-items:center;gap:8px;padding:8px 14px;margin:1px 6px;cursor:pointer;border-radius:6px;color:#7A746E;font-size:12px;transition:background .15s,color .15s;}
+.sidebar-action:hover{background:#2E2924;color:#C8C2BB;}
+.sidebar-bottom{margin-top:auto;border-top:1px solid var(--border-dark);padding:12px 6px;}
+.user-chip{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:6px;cursor:pointer;}
+.user-chip:hover{background:#2E2924;}
+.user-avatar{width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0;}
+.user-name{font-size:12px;color:#D0CAC3;font-weight:500;}
+.user-role{font-size:10px;color:var(--text-light);}
+
+/* PAGES PANEL */
+.pages-panel{width:var(--pages-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.pages-header{padding:16px 14px 10px;border-bottom:1px solid var(--border);}
+.pages-header h2{font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px;}
+.search-box{position:relative;}
+.search-box input{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--border);border-radius:6px;background:var(--bg);font-size:12px;color:var(--text);outline:none;transition:border-color .15s;font-family:inherit;}
+.search-box input:focus{border-color:var(--accent);}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-light);font-size:12px;}
+.pages-list{overflow-y:auto;flex:1;padding:6px;}
+.page-group-label{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-light);padding:10px 8px 4px;}
+.page-item{padding:10px;border-radius:7px;cursor:pointer;margin-bottom:2px;transition:background .12s;border:1px solid transparent;position:relative;}
+.page-item:hover{background:var(--bg);}
+.page-item.active{background:var(--accent-soft);border-color:var(--accent);}
+.page-date{font-size:10px;color:var(--text-light);margin-bottom:3px;}
+.page-title{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.page-preview{font-size:11px;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.page-tags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;}
+.tag{font-size:9px;padding:2px 6px;background:var(--tag-bg);border-radius:10px;color:var(--text-muted);font-weight:500;}
+.tag.accent{background:var(--accent-soft);color:var(--accent);}
+.page-delete-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;color:var(--text-light);font-size:13px;opacity:0;transition:opacity .15s,color .15s;padding:2px 4px;border-radius:4px;}
+.page-item:hover .page-delete-btn{opacity:1;}
+.page-delete-btn:hover{color:#C62828;background:#FBE9E7;}
+.new-page-btn{display:flex;align-items:center;gap:7px;padding:10px;margin:6px;border-radius:7px;cursor:pointer;border:1.5px dashed var(--border);color:var(--text-muted);font-size:12px;transition:border-color .15s,color .15s,background .15s;font-family:inherit;background:transparent;width:calc(100% - 12px);}
+.new-page-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+
+/* EDITOR */
+.editor-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--surface);}
+.editor-toolbar{display:flex;align-items:center;gap:6px;padding:10px 24px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.toolbar-group{display:flex;align-items:center;gap:2px;border-right:1px solid var(--border);padding-right:10px;margin-right:4px;}
+.toolbar-group:last-child{border-right:none;}
+.tb-btn{width:30px;height:30px;border:none;background:transparent;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-muted);transition:background .12s,color .12s;font-family:inherit;}
+.tb-btn:hover{background:var(--bg);color:var(--text);}
+.toolbar-spacer{flex:1;}
+.ai-trigger-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--sidebar-bg);color:#F0EDE8;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;transition:background .15s;font-family:inherit;}
+.ai-trigger-btn:hover{background:var(--accent);}
+.export-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:#1A5276;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s;font-family:inherit;}
+.export-btn:hover{opacity:.85;}
+.save-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;background:var(--accent);color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s;font-family:inherit;}
+.save-btn:hover{opacity:.85;}
+
+/* EDITOR SCROLL */
+.editor-scroll{flex:1;overflow-y:auto;padding:36px 60px;}
+.note-meta{margin-bottom:24px;}
+.note-meta-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.note-date-badge{font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:4px 12px;color:var(--text-muted);font-weight:500;}
+.note-tags-row{display:flex;gap:5px;align-items:center;flex-wrap:wrap;}
+.note-tags-row .tag{font-size:10px;padding:3px 8px;}
+.note-title-input{font-family:'Lora',serif;font-size:26px;font-weight:500;color:var(--text);border:none;outline:none;width:100%;background:transparent;line-height:1.3;margin-bottom:6px;}
+.note-title-input::placeholder{color:var(--border);}
+.note-subtitle{font-size:13px;color:var(--text-muted);margin-bottom:20px;font-style:italic;}
+.note-divider{height:1px;background:var(--border);margin-bottom:24px;}
+.note-body{min-height:300px;font-size:14px;line-height:1.8;color:var(--text);border:none;outline:none;width:100%;background:transparent;resize:none;font-family:'Inter',sans-serif;}
+.note-body::placeholder{color:var(--border);}
+.section-heading{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-light);margin:28px 0 10px;display:flex;align-items:center;gap:8px;}
+.section-heading::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* AI PANEL */
+.ai-panel{width:300px;background:var(--ai-bg);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.ai-panel-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.ai-icon{width:26px;height:26px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.ai-panel-header h3{font-size:13px;font-weight:600;color:var(--text);}
+.ai-model{font-size:10px;color:var(--text-light);margin-top:1px;}
+.ai-close{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;line-height:1;}
+.ai-suggestion-chips{display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px;}
+.chip{font-size:11px;padding:5px 10px;background:var(--surface);border:1px solid var(--border);border-radius:20px;cursor:pointer;color:var(--text-muted);transition:border-color .12s,color .12s,background .12s;font-family:inherit;}
+.chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+.ai-chat-scroll{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px;}
+.ai-msg{padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.7;}
+.ai-msg.user{background:var(--surface);border:1px solid var(--border);color:var(--text);align-self:flex-end;max-width:85%;}
+.ai-msg.assistant{background:var(--surface);border:1px solid rgba(197,112,42,.2);border-left:3px solid var(--accent);color:var(--text);}
+.msg-label{font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-bottom:5px;}
+.ai-msg.user .msg-label{color:var(--text-light);}
+.ai-insight-card{background:var(--surface);border:1px solid rgba(197,112,42,.2);border-radius:8px;padding:12px;font-size:12px;}
+.ai-insight-card .card-title{font-weight:600;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.ai-insight-card ul{padding-left:14px;color:var(--text);line-height:1.8;}
+.ai-input-area{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:6px;align-items:flex-end;background:var(--surface);}
+.ai-input-area textarea{flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;font-family:inherit;resize:none;outline:none;background:var(--bg);color:var(--text);line-height:1.5;max-height:80px;min-height:36px;transition:border-color .15s;}
+.ai-input-area textarea:focus{border-color:var(--accent);}
+.ai-send-btn{width:34px;height:34px;background:var(--accent);border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;flex-shrink:0;transition:opacity .15s;}
+.ai-send-btn:hover{opacity:.85;}
+
+/* STATUS BAR */
+.status-bar{padding:5px 24px;border-top:1px solid var(--border);display:flex;align-items:center;gap:16px;font-size:10px;color:var(--text-light);background:var(--surface);flex-shrink:0;}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#4CAF50;display:inline-block;margin-right:4px;}
+
+/* EMPTY STATE */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-light);text-align:center;gap:10px;padding:40px;}
+.empty-state .es-icon{font-size:40px;opacity:.3;}
+.empty-state p{font-size:13px;font-weight:500;}
+.empty-state small{font-size:11px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:1000;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--surface);border-radius:12px;padding:24px;width:380px;box-shadow:0 8px 32px rgba(0,0,0,.15);}
+.modal-box h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--text);}
+.modal-box p{font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.6;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.btn-cancel{padding:8px 16px;border:1px solid var(--border);border-radius:7px;background:transparent;cursor:pointer;font-size:12px;color:var(--text-muted);font-family:inherit;}
+.btn-cancel:hover{background:var(--bg);}
+.btn-danger{padding:8px 16px;border:none;border-radius:7px;background:#C62828;color:#fff;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;}
+.btn-danger:hover{opacity:.85;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--sidebar-bg);color:#F0EDE8;padding:10px 16px;border-radius:8px;font-size:12px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none;z-index:999;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* LOADING */
+.loading-dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);margin:0 2px;animation:bounce .9s infinite;}
+.loading-dots span:nth-child(2){animation-delay:.15s;}
+.loading-dots span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.5;}40%{transform:translateY(-5px);opacity:1;}}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="app-name">Catatan Diskusi</div>
+    <div class="app-sub">Halaqoh Guru · Idadiyah</div>
+  </div>
+  <div class="sidebar-section-label">Notebook</div>
+  <div class="notebook-item" onclick="selectNotebook('all')" id="nb-all">
+    <span class="nb-dot" style="background:#8D7370"></span>
+    Semua Catatan
+    <span class="nb-count" id="count-all">0</span>
+  </div>
+  <div class="notebook-item active" onclick="selectNotebook('diskusi')" id="nb-diskusi">
+    <span class="nb-dot" style="background:#C5702A"></span>
+    Diskusi Malam
+    <span class="nb-count" id="count-diskusi">0</span>
+  </div>
+  <div class="notebook-item" onclick="selectNotebook('bulanan')" id="nb-bulanan">
+    <span class="nb-dot" style="background:#5B8DB8"></span>
+    Rapat Bulanan
+    <span class="nb-count" id="count-bulanan">0</span>
+  </div>
+  <div class="notebook-item" onclick="selectNotebook('pribadi')" id="nb-pribadi">
+    <span class="nb-dot" style="background:#7BAF6E"></span>
+    Catatan Pribadi
+    <span class="nb-count" id="count-pribadi">0</span>
+  </div>
+  <div class="notebook-item" onclick="selectNotebook('agenda')" id="nb-agenda">
+    <span class="nb-dot" style="background:#9B6EA8"></span>
+    Agenda Pondok
+    <span class="nb-count" id="count-agenda">0</span>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-action" onclick="exportAllWord()">📄 Export Semua ke Word</div>
+  <div class="sidebar-action" onclick="toggleAiPanel()">✦ Asisten AI</div>
+  <div class="sidebar-bottom">
+    <div class="user-chip">
+      <div class="user-avatar">NG</div>
+      <div>
+        <div class="user-name">Nabil Ghufron</div>
+        <div class="user-role">Admin · Halaqoh</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- PAGES PANEL -->
+<div class="pages-panel">
+  <div class="pages-header">
+    <h2 id="panel-notebook-title">Diskusi Malam</h2>
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Cari catatan..." oninput="filterPages(this.value)" />
+    </div>
+  </div>
+  <div style="padding:6px 6px 0;">
+    <button class="new-page-btn" onclick="newPage()">＋ Catatan Baru</button>
+  </div>
+  <div class="pages-list" id="pagesList"></div>
+</div>
+
+<!-- EDITOR -->
+<div class="editor-area">
+  <div class="editor-toolbar">
+    <div class="toolbar-group">
+      <button class="tb-btn" title="Bold"><b>B</b></button>
+      <button class="tb-btn" title="Italic"><i>I</i></button>
+      <button class="tb-btn" title="Underline"><u>U</u></button>
+    </div>
+    <div class="toolbar-group">
+      <button class="tb-btn" title="Heading">H₁</button>
+      <button class="tb-btn" title="List">≡</button>
+    </div>
+    <div class="toolbar-spacer"></div>
+    <button class="export-btn" onclick="exportCurrentWord()">📄 Export Word</button>
+    <button class="ai-trigger-btn" onclick="toggleAiPanel()">✦ Tanya AI</button>
+    <button class="save-btn" onclick="savePage()">💾 Simpan</button>
+  </div>
+
+  <div class="editor-scroll" id="editorScroll">
+    <div id="editorContent">
+      <div class="empty-state">
+        <div class="es-icon">📒</div>
+        <p>Pilih catatan atau buat yang baru</p>
+        <small>Klik "＋ Catatan Baru" untuk memulai</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <span id="statusSave">—</span>
+    <span>·</span>
+    <span id="statusWords">0 kata</span>
+    <span>·</span>
+    <span>Mistral · mistral-small-latest</span>
+  </div>
+</div>
+
+<!-- AI PANEL -->
+<div class="ai-panel" id="aiPanel" style="display:none;">
+  <div class="ai-panel-header">
+    <div class="ai-icon">✦</div>
+    <div>
+      <h3>Asisten AI</h3>
+      <div class="ai-model">Mistral · mistral-small-latest</div>
+    </div>
+    <button class="ai-close" onclick="toggleAiPanel()">×</button>
+  </div>
+  <div class="ai-suggestion-chips">
+    <button class="chip" onclick="sendChip('Rangkum poin diskusi ini')">📋 Rangkum</button>
+    <button class="chip" onclick="sendChip('Ekstrak semua tindak lanjut')">✅ Tindak lanjut</button>
+    <button class="chip" onclick="sendChip('Identifikasi isu utama yang dibahas')">🔍 Isu utama</button>
+    <button class="chip" onclick="sendChip('Buat draft kesimpulan diskusi')">✍️ Kesimpulan</button>
+  </div>
+  <div class="ai-chat-scroll" id="aiChatScroll"></div>
+  <div class="ai-input-area">
+    <textarea id="aiInput" placeholder="Tanya sesuatu tentang catatan ini..." rows="1" onkeydown="handleAiKeydown(event)"></textarea>
+    <button class="ai-send-btn" onclick="sendAiMessage()">➤</button>
+  </div>
+</div>
+
+<!-- MODAL HAPUS -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box">
+    <h3>🗑️ Hapus Catatan</h3>
+    <p id="deleteModalText">Yakin ingin menghapus catatan ini? Tindakan ini tidak bisa dibatalkan.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDeleteModal()">Batal</button>
+      <button class="btn-danger" onclick="confirmDelete()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA STORE (localStorage) ──────────────────────────────
+const STORAGE_KEY = 'idadiyah_catatan_v1';
+
+function loadStore() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+}
+function saveStore(store) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+}
+function getNotebooks() {
+  const s = loadStore();
+  return s.notebooks || { diskusi: [], bulanan: [], pribadi: [], agenda: [] };
+}
+function saveNotebooks(nb) {
+  const s = loadStore();
+  s.notebooks = nb;
+  saveStore(s);
+}
+
+// ── STATE ──────────────────────────────────────────────────
+let currentNotebook = 'diskusi';
+let currentNoteId   = null;
+let pendingDeleteId = null;
+let aiPanelOpen     = false;
+let chatHistory     = [];
+const WORKER_BASE_URL = '/api';
+
+const NOTEBOOK_LABELS = {
+  all: 'Semua Catatan',
+  diskusi: 'Diskusi Malam',
+  bulanan: 'Rapat Bulanan',
+  pribadi: 'Catatan Pribadi',
+  agenda:  'Agenda Pondok'
+};
+
+// ── HELPERS ────────────────────────────────────────────────
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+function nowStr() {
+  return new Date().toLocaleString('id-ID', {
+    weekday:'long', day:'numeric', month:'long', year:'numeric',
+    hour:'2-digit', minute:'2-digit', timeZone:'Asia/Jakarta'
+  }) + ' WIB';
+}
+
+function dateKey() {
+  const d = new Date();
+  return d.toLocaleDateString('id-ID', { month:'long', year:'numeric' });
+}
+
+function wordCount(text) {
+  return text.trim() ? text.trim().split(/\s+/).length : 0;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── RENDER PAGES LIST ──────────────────────────────────────
+function renderPagesList() {
+  const nbs = getNotebooks();
+  const list  = document.getElementById('pagesList');
+  list.innerHTML = '';
+
+  const notes = currentNotebook === 'all'
+    ? Object.keys(NOTEBOOK_LABELS).filter(k => k !== 'all').flatMap(key => (nbs[key] || []).map(note => ({ ...note, _notebook: key })))
+    : nbs[currentNotebook] || [];
+
+  // Update counts
+  const totalNotes = Object.keys(nbs).reduce((sum, key) => sum + ((nbs[key] || []).length), 0);
+  Object.keys(NOTEBOOK_LABELS).forEach(k => {
+    const el = document.getElementById('count-' + k);
+    if (!el) return;
+    el.textContent = k === 'all' ? totalNotes : (nbs[k] || []).length;
+  });
+
+  if (!notes.length) {
+    list.innerHTML = `<div style="padding:20px 10px;text-align:center;color:var(--text-light);font-size:12px;">
+      Belum ada catatan.<br><small>Klik "＋ Catatan Baru" untuk memulai.</small></div>`;
+    return;
+  }
+
+  // Group by notebook and month
+  const groups = {};
+  notes.forEach(n => {
+    const g = currentNotebook === 'all'
+      ? `${NOTEBOOK_LABELS[n._notebook]} · ${n.monthGroup || 'Lainnya'}`
+      : n.monthGroup || 'Lainnya';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(n);
+  });
+
+  // Render newest first
+  const sortedGroups = Object.keys(groups).reverse();
+  sortedGroups.forEach(g => {
+    const label = document.createElement('div');
+    label.className = 'page-group-label';
+    label.textContent = g.toUpperCase();
+    list.appendChild(label);
+
+    [...groups[g]].reverse().forEach(note => {
+      const item = document.createElement('div');
+      item.className = 'page-item' + (note.id === currentNoteId ? ' active' : '');
+      item.dataset.id = note.id;
+      item.onclick = () => openNote(note.id);
+      item.innerHTML = `
+        <div class="page-date">${note.dateShort || ''}</div>
+        <div class="page-title">${note.title || 'Tanpa Judul'}</div>
+        <div class="page-preview">${(note.body || '').slice(0, 60)}...</div>
+        <div class="page-tags">
+          ${(note.tags || []).map(t => `<span class="tag accent">${t}</span>`).join('')}
+          ${note._notebook ? `<span class="tag">${NOTEBOOK_LABELS[note._notebook]}</span>` : ''}
+        </div>
+        <button class="page-delete-btn" onclick="askDelete(event,'${note.id}')" title="Hapus catatan">🗑</button>
+      `;
+      list.appendChild(item);
+    });
+  });
+}
+
+// ── SELECT NOTEBOOK ────────────────────────────────────────
+function selectNotebook(key) {
+  currentNotebook = key;
+  currentNoteId   = null;
+  chatHistory     = [];
+
+  document.querySelectorAll('.notebook-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('nb-' + key).classList.add('active');
+  document.getElementById('panel-notebook-title').textContent = NOTEBOOK_LABELS[key];
+
+  renderPagesList();
+  showEmptyEditor();
+}
+
+// ── OPEN NOTE ─────────────────────────────────────────────
+function openNote(id) {
+  const result = findNoteById(id);
+  if (!result.note) return;
+
+  currentNoteId = id;
+  chatHistory   = [];
+  renderPagesList();
+  renderEditor(result.note, result.notebook);
+  renderChat();
+}
+
+// ── RENDER EDITOR ─────────────────────────────────────────
+function findNoteById(id) {
+  const nbs = getNotebooks();
+  for (const key of Object.keys(NOTEBOOK_LABELS)) {
+    if (key === 'all') continue;
+    const note = (nbs[key] || []).find(n => n.id === id);
+    if (note) return { note, notebook: key };
+  }
+  return { note: null, notebook: null };
+}
+
+function renderEditor(note, notebookKey) {
+  const content = document.getElementById('editorContent');
+  content.innerHTML = `
+    <div class="note-meta">
+      <div class="note-meta-top">
+        <span class="note-date-badge">📅 ${note.dateFull || ''}</span>
+      </div>
+      <div class="note-tags-row">
+        ${(note.tags || []).map(t => `<span class="tag accent">${t}</span>`).join('')}
+      </div>
+    </div>
+    <input class="note-title-input" type="text" id="noteTitle"
+      value="${(note.title || '').replace(/"/g,'&quot;')}"
+      placeholder="Judul diskusi..." oninput="updateWordCount()" />
+    <div class="note-subtitle">${NOTEBOOK_LABELS[notebookKey || currentNotebook]} · Halaqoh Guru Idadiyah</div>
+    <div class="note-divider"></div>
+    <div class="section-heading">Isi Catatan</div>
+    <textarea class="note-body" id="noteBody" placeholder="Tulis catatan di sini..." oninput="updateWordCount()"
+    >${note.body || ''}</textarea>
+    <div style="height:60px;"></div>
+  `;
+  updateWordCount();
+  document.getElementById('statusSave').innerHTML = `<span class="status-dot"></span>Tersimpan ${note.savedAt || ''}`;
+}
+
+function showEmptyEditor() {
+  document.getElementById('editorContent').innerHTML = `
+    <div class="empty-state">
+      <div class="es-icon">📒</div>
+      <p>Pilih catatan atau buat yang baru</p>
+      <small>Klik "＋ Catatan Baru" untuk memulai</small>
+    </div>`;
+  document.getElementById('statusSave').textContent = '—';
+  document.getElementById('statusWords').textContent = '0 kata';
+}
+
+function updateWordCount() {
+  const body  = document.getElementById('noteBody');
+  const title = document.getElementById('noteTitle');
+  if (!body) return;
+  const wc = wordCount((title ? title.value : '') + ' ' + body.value);
+  document.getElementById('statusWords').textContent = wc + ' kata';
+}
+
+// ── NEW PAGE ───────────────────────────────────────────────
+function newPage() {
+  const now  = new Date();
+  const id   = genId();
+  const note = {
+    id,
+    title: '',
+    body: '',
+    dateFull: nowStr(),
+    dateShort: now.toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) + ' · ' +
+               now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}),
+    monthGroup: now.toLocaleDateString('id-ID',{month:'long',year:'numeric'}),
+    tags: [],
+    savedAt: now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})
+  };
+
+  const nbs = getNotebooks();
+  const targetNotebook = currentNotebook === 'all' ? 'diskusi' : currentNotebook;
+  if (!nbs[targetNotebook]) nbs[targetNotebook] = [];
+  nbs[targetNotebook].push(note);
+  saveNotebooks(nbs);
+
+  currentNoteId = id;
+  renderPagesList();
+  renderEditor(note, targetNotebook);
+  chatHistory = [];
+  renderChat();
+  setTimeout(() => document.getElementById('noteTitle')?.focus(), 50);
+}
+
+// ── SAVE PAGE ─────────────────────────────────────────────
+function savePage() {
+  if (!currentNoteId) { showToast('Pilih atau buat catatan dulu'); return; }
+  const titleEl = document.getElementById('noteTitle');
+  const bodyEl  = document.getElementById('noteBody');
+  if (!titleEl || !bodyEl) return;
+
+  const nbs = getNotebooks();
+  const result = findNoteById(currentNoteId);
+  if (!result.note || !result.notebook) return;
+
+  const notes = nbs[result.notebook] || [];
+  const idx = notes.findIndex(n => n.id === currentNoteId);
+  if (idx === -1) return;
+
+  const now = new Date();
+  notes[idx].title   = titleEl.value.trim() || 'Tanpa Judul';
+  notes[idx].body    = bodyEl.value;
+  notes[idx].savedAt = now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+
+  nbs[result.notebook] = notes;
+  saveNotebooks(nbs);
+  renderPagesList();
+  document.getElementById('statusSave').innerHTML =
+    `<span class="status-dot"></span>Tersimpan ${notes[idx].savedAt}`;
+  showToast('✓ Catatan tersimpan');
+}
+
+// ── DELETE ─────────────────────────────────────────────────
+function askDelete(e, id) {
+  e.stopPropagation();
+  const result = findNoteById(id);
+  pendingDeleteId = id;
+  document.getElementById('deleteModalText').textContent =
+    `Yakin ingin menghapus "${result.note?.title || 'catatan ini'}"? Tindakan ini tidak bisa dibatalkan.`;
+  document.getElementById('deleteModal').classList.add('show');
+}
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('show');
+  pendingDeleteId = null;
+}
+function confirmDelete() {
+  if (!pendingDeleteId) return;
+  const nbs = getNotebooks();
+  const result = findNoteById(pendingDeleteId);
+  if (!result.notebook) return;
+  nbs[result.notebook] = (nbs[result.notebook] || []).filter(n => n.id !== pendingDeleteId);
+  saveNotebooks(nbs);
+  if (currentNoteId === pendingDeleteId) {
+    currentNoteId = null;
+    showEmptyEditor();
+    chatHistory = [];
+    renderChat();
+  }
+  closeDeleteModal();
+  renderPagesList();
+  showToast('🗑️ Catatan dihapus');
+}
+
+// ── FILTER ────────────────────────────────────────────────
+function filterPages(q) {
+  const needle = q.trim().toLowerCase();
+  document.querySelectorAll('.page-item').forEach(item => {
+    const title = item.querySelector('.page-title')?.textContent.toLowerCase() || '';
+    const preview = item.querySelector('.page-preview')?.textContent.toLowerCase() || '';
+    const tags = item.querySelector('.page-tags')?.textContent.toLowerCase() || '';
+    item.style.display = !needle || title.includes(needle) || preview.includes(needle) || tags.includes(needle) ? '' : 'none';
+  });
+}
+
+// ── EXPORT WORD (current note) ────────────────────────────
+function exportCurrentWord() {
+  if (!currentNoteId) { showToast('Pilih catatan dulu'); return; }
+  const result = findNoteById(currentNoteId);
+  const note = result.note;
+  if (!note) return;
+
+  // Update body from editor if open
+  const bodyEl  = document.getElementById('noteBody');
+  const titleEl = document.getElementById('noteTitle');
+  if (bodyEl)  note.body  = bodyEl.value;
+  if (titleEl) note.title = titleEl.value || 'Tanpa Judul';
+
+  exportNotesToDocx([note], `Catatan_${note.title.replace(/\s+/g,'_')}`);
+}
+
+// ── EXPORT WORD (all notebooks) ───────────────────────────
+function exportAllWord() {
+  const nbs  = getNotebooks();
+  const all  = [];
+  Object.keys(NOTEBOOK_LABELS).filter(k => k !== 'all').forEach(k => {
+    (nbs[k] || []).forEach(n => all.push({ ...n, _notebook: NOTEBOOK_LABELS[k] }));
+  });
+  if (!all.length) { showToast('Belum ada catatan untuk diexport'); return; }
+  exportNotesToDocx(all, 'Semua_Laporan_Catatan_Idadiyah');
+}
+
+function exportNotesToDocx(notes, filename) {
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
+          BorderStyle, PageNumber, Header, Footer } = docx;
+
+  const children = [];
+
+  // Cover / header
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 120 },
+      children: [new TextRun({ text: 'LAPORAN CATATAN DISKUSI', bold: true, size: 32, font: 'Arial' })]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 60 },
+      children: [new TextRun({ text: 'Halaqoh Guru Idadiyah', size: 24, font: 'Arial', color: '6B6560' })]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 480 },
+      children: [new TextRun({
+        text: 'Dicetak: ' + new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}),
+        size: 20, font: 'Arial', color: '9B9490'
+      })]
+    })
+  );
+
+  notes.forEach((note, i) => {
+    // Section heading: notebook label if exporting all
+    if (note._notebook) {
+      children.push(new Paragraph({
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 480, after: 120 },
+        children: [new TextRun({ text: note._notebook, bold: true, size: 28, font: 'Arial', color: '1E1B18' })]
+      }));
+    }
+
+    // Note title
+    children.push(new Paragraph({
+      heading: HeadingLevel.HEADING_2,
+      spacing: { before: 320, after: 80 },
+      children: [new TextRun({ text: note.title || 'Tanpa Judul', bold: true, size: 24, font: 'Arial', color: 'C5702A' })]
+    }));
+
+    // Meta info
+    children.push(new Paragraph({
+      spacing: { before: 0, after: 60 },
+      children: [
+        new TextRun({ text: '📅 Tanggal: ', bold: true, size: 20, font: 'Arial' }),
+        new TextRun({ text: note.dateFull || '-', size: 20, font: 'Arial', color: '6B6560' })
+      ]
+    }));
+
+      if (note.tags && note.tags.length) {
+      children.push(new Paragraph({
+        spacing: { before: 0, after: 120 },
+        children: [
+          new TextRun({ text: 'Topik: ', bold: true, size: 20, font: 'Arial' }),
+          new TextRun({ text: note.tags.join(', '), size: 20, font: 'Arial', color: '6B6560' })
+        ]
+      }));
+    }
+
+    // Divider via border
+    children.push(new Paragraph({
+      spacing: { before: 120, after: 120 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'E4E0DB', space: 1 } },
+      children: []
+    }));
+
+    // Body content - split by newlines
+    const lines = (note.body || '').split('\n');
+    lines.forEach(line => {
+      children.push(new Paragraph({
+        spacing: { before: 0, after: 60 },
+        children: [new TextRun({ text: line, size: 22, font: 'Arial' })]
+      }));
+    });
+
+    children.push(new Paragraph({ spacing: { before: 240, after: 0 }, children: [] }));
+  });
+
+  const doc = new Document({
+    styles: {
+      default: { document: { run: { font: 'Arial', size: 22 } } }
+    },
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 11906, height: 16838 },
+          margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+        }
+      },
+      children
+    }]
+  });
+
+  Packer.toBlob(doc).then(blob => {
+    saveAs(blob, filename + '.docx');
+    showToast('📄 File Word berhasil diunduh');
+  }).catch(e => {
+    showToast('Gagal export: ' + e.message);
+    console.error(e);
+  });
+}
+
+// ── AI PANEL ──────────────────────────────────────────────
+function toggleAiPanel() {
+  aiPanelOpen = !aiPanelOpen;
+  document.getElementById('aiPanel').style.display = aiPanelOpen ? 'flex' : 'none';
+}
+
+function renderChat() {
+  const scroll = document.getElementById('aiChatScroll');
+  scroll.innerHTML = '';
+
+  if (!chatHistory.length) {
+    const welcome = document.createElement('div');
+    welcome.className = 'ai-msg assistant';
+    welcome.innerHTML = '<div class="msg-label">✦ Asisten</div>Halo! Pilih catatan dan tanya saya untuk merangkum, mengekstrak tindak lanjut, atau menganalisa diskusi.';
+    scroll.appendChild(welcome);
+    return;
+  }
+
+  chatHistory.forEach(m => {
+    const div = document.createElement('div');
+    div.className = `ai-msg ${m.role}`;
+    div.innerHTML = `<div class="msg-label">${m.role === 'user' ? '👤 Anda' : '✦ Asisten'}</div>${m.content.replace(/\n/g,'<br>')}`;
+    scroll.appendChild(div);
+  });
+  scroll.scrollTop = scroll.scrollHeight;
+}
+
+async function sendAiMessage() {
+  const input = document.getElementById('aiInput');
+  const text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  await doAiQuery(text);
+}
+
+function sendChip(text) { doAiQuery(text); }
+
+async function doAiQuery(userText) {
+  const nbs   = getNotebooks();
+  const noteData = findNoteById(currentNoteId);
+  const note  = noteData.note;
+  const title = document.getElementById('noteTitle')?.value || note?.title || '';
+  const body  = document.getElementById('noteBody')?.value  || note?.body  || '';
+
+  chatHistory.push({ role: 'user', content: userText });
+  renderChat();
+
+  // Loading
+  const scroll = document.getElementById('aiChatScroll');
+  const loading = document.createElement('div');
+  loading.className = 'ai-msg assistant';
+  loading.id = 'loadingMsg';
+  loading.innerHTML = '<div class="msg-label">✦ Asisten</div><div class="loading-dots"><span></span><span></span><span></span></div>';
+  scroll.appendChild(loading);
+  scroll.scrollTop = scroll.scrollHeight;
+
+  const systemPrompt = `Anda adalah asisten analisa catatan diskusi guru di pondok pesantren Idadiyah. Bantu analisa, rangkum, dan berikan insight. Jawab dalam Bahasa Indonesia yang ringkas dan profesional.
+
+${note ? `Catatan aktif:\nJudul: ${title}\nTanggal: ${note.dateFull}\n\nIsi:\n${body}` : 'Belum ada catatan yang dipilih.'}`;
+
+  try {
+    const res = await fetch(`${WORKER_BASE_URL}/ai`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        prompt: systemPrompt,
+        history: chatHistory,
+        model: 'mistral-small-latest'
+      })
+    });
+    const data = await res.json();
+    document.getElementById('loadingMsg')?.remove();
+    const reply = res.ok ? (data.choices?.[0]?.message?.content || '(tidak ada respons)') : `⚠️ ${data.message || 'API Error'}`;
+    chatHistory.push({ role: 'assistant', content: reply });
+  } catch (e) {
+    document.getElementById('loadingMsg')?.remove();
+    chatHistory.push({ role: 'assistant', content: `⚠️ Gagal terhubung: ${e.message}` });
+  }
+  renderChat();
+}
+
+function handleAiKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage(); }
+}
+
+document.getElementById('aiInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+});
+
+// ── INIT ──────────────────────────────────────────────────
+renderPagesList();
+renderChat();
+</script>
+</body>
+</html>
