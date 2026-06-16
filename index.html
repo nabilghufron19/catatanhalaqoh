@@ -324,7 +324,9 @@ let currentNoteId   = null;
 let pendingDeleteId = null;
 let aiPanelOpen     = false;
 let chatHistory     = [];
+let backendEnabled  = false;
 const WORKER_BASE_URL = '/api';
+const NOTES_API_URL = `${WORKER_BASE_URL}/notes`;
 
 const NOTEBOOK_LABELS = {
   all: 'Semua Catatan',
@@ -347,6 +349,78 @@ function nowStr() {
 function dateKey() {
   const d = new Date();
   return d.toLocaleDateString('id-ID', { month:'long', year:'numeric' });
+}
+
+async function syncNotesFromBackend() {
+  try {
+    const res = await fetch(NOTES_API_URL);
+    if (!res.ok) throw new Error(`Backend notes error ${res.status}`);
+    const notes = await res.json();
+    if (!Array.isArray(notes)) throw new Error('Response backend notes bukan array');
+
+    const nbs = getNotebooks();
+    notes.forEach(note => {
+      const notebook = note.notebook || 'diskusi';
+      if (!nbs[notebook]) nbs[notebook] = [];
+      const idx = nbs[notebook].findIndex(n => n.id === note.id);
+      const normalized = {
+        id: note.id,
+        title: note.title || '',
+        body: note.body || '',
+        dateFull: note.dateFull || note.date_full || nowStr(),
+        dateShort: note.dateShort || note.date_short || '',
+        monthGroup: note.monthGroup || note.month_group || dateKey(),
+        tags: Array.isArray(note.tags) ? note.tags : [],
+        savedAt: note.savedAt || note.saved_at || ''
+      };
+      if (idx === -1) {
+        nbs[notebook].push(normalized);
+      } else {
+        nbs[notebook][idx] = normalized;
+      }
+    });
+    saveNotebooks(nbs);
+    backendEnabled = true;
+    showToast('Sinkronisasi Neon aktif');
+  } catch (err) {
+    backendEnabled = false;
+    console.warn('Neon sinkro gagal:', err.message);
+  }
+}
+
+async function saveNoteBackend(note, notebook) {
+  try {
+    const payload = {
+      ...note,
+      notebook,
+      tags: Array.isArray(note.tags) ? note.tags : [],
+      dateFull: note.dateFull,
+      dateShort: note.dateShort,
+      monthGroup: note.monthGroup,
+      savedAt: note.savedAt
+    };
+    const res = await fetch(NOTES_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    backendEnabled = true;
+  } catch (err) {
+    backendEnabled = false;
+    console.warn('Gagal simpan ke Neon:', err.message);
+  }
+}
+
+async function deleteNoteBackend(id) {
+  try {
+    const res = await fetch(`${NOTES_API_URL}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`Status ${res.status}`);
+    backendEnabled = true;
+  } catch (err) {
+    backendEnabled = false;
+    console.warn('Gagal hapus dari Neon:', err.message);
+  }
 }
 
 function wordCount(text) {
@@ -559,6 +633,7 @@ function savePage() {
   document.getElementById('statusSave').innerHTML =
     `<span class="status-dot"></span>Tersimpan ${notes[idx].savedAt}`;
   showToast('✓ Catatan tersimpan');
+  saveNoteBackend(notes[idx], result.notebook);
 }
 
 // ── DELETE ─────────────────────────────────────────────────
@@ -590,6 +665,7 @@ function confirmDelete() {
   closeDeleteModal();
   renderPagesList();
   showToast('🗑️ Catatan dihapus');
+  deleteNoteBackend(pendingDeleteId);
 }
 
 // ── FILTER ────────────────────────────────────────────────
@@ -829,8 +905,11 @@ document.getElementById('aiInput').addEventListener('input', function() {
 });
 
 // ── INIT ──────────────────────────────────────────────────
-renderPagesList();
-renderChat();
+(async function initApp() {
+  await syncNotesFromBackend();
+  renderPagesList();
+  renderChat();
+})();
 </script>
 </body>
 </html>
