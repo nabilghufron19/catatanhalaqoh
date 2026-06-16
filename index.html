@@ -161,9 +161,118 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);heigh
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px;}
+
+/* ── MOBILE RESPONSIVE ───────────────────────────────────── */
+/* Overlay backdrop */
+.mobile-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;backdrop-filter:blur(2px);}
+.mobile-overlay.show{display:block;}
+
+/* Bottom nav bar (mobile only) */
+.bottom-nav{display:none;}
+
+@media (max-width:768px) {
+  :root { --sidebar-w:260px; --pages-w:100vw; }
+
+  body { flex-direction:column; overflow:hidden; }
+
+  /* Sidebar: hidden by default, slide in as drawer */
+  .sidebar {
+    position:fixed; left:0; top:0; bottom:0; z-index:300;
+    transform:translateX(-100%); transition:transform .25s ease;
+    width:var(--sidebar-w) !important;
+  }
+  .sidebar.open { transform:translateX(0); }
+
+  /* Pages panel: hidden by default, full-screen slide */
+  .pages-panel {
+    position:fixed; inset:0; z-index:250;
+    width:100% !important; transform:translateX(-100%);
+    transition:transform .25s ease;
+    padding-bottom:60px; /* space for bottom nav */
+  }
+  .pages-panel.open { transform:translateX(0); }
+
+  /* Editor area: full width, shown by default */
+  .editor-area {
+    width:100%; height:100%; flex:none;
+    padding-bottom:60px; /* space for bottom nav */
+  }
+
+  /* AI Panel: full screen overlay */
+  .ai-panel {
+    position:fixed; inset:0; z-index:280;
+    width:100% !important; border-left:none;
+    transform:translateY(100%); transition:transform .25s ease;
+    padding-bottom:60px;
+  }
+  .ai-panel.mobile-open { transform:translateY(0); display:flex !important; }
+
+  /* Toolbar: compact on mobile */
+  .editor-toolbar { padding:8px 12px; gap:4px; overflow-x:auto; }
+  .toolbar-group { padding-right:6px; }
+  .export-btn span, .ai-trigger-btn span, .save-btn span { display:none; }
+  .export-btn, .ai-trigger-btn, .save-btn { padding:7px 10px; font-size:11px; }
+
+  /* Editor scroll: less padding */
+  .editor-scroll { padding:20px 16px; }
+  .note-title-input { font-size:20px; }
+
+  /* Status bar: scrollable */
+  .status-bar { overflow-x:auto; white-space:nowrap; gap:8px; padding:5px 12px; }
+
+  /* Modal: full width */
+  .modal-box { width:calc(100% - 32px); margin:0 16px; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    display:flex; position:fixed; bottom:0; left:0; right:0;
+    height:60px; background:var(--sidebar-bg);
+    border-top:1px solid var(--border-dark);
+    z-index:400; align-items:stretch;
+  }
+  .bnav-btn {
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:3px; cursor:pointer; border:none;
+    background:transparent; color:#9B9490; font-size:10px; font-weight:500;
+    font-family:inherit; letter-spacing:.03em; transition:color .15s,background .15s;
+    padding:6px 4px;
+  }
+  .bnav-btn .bnav-icon { font-size:18px; line-height:1; }
+  .bnav-btn.active { color:var(--accent); }
+  .bnav-btn:active { background:#2E2924; }
+}
+
+@media (max-width:400px) {
+  .editor-toolbar { gap:2px; padding:6px 8px; }
+  .tb-btn { width:26px; height:26px; font-size:12px; }
+  .export-btn, .ai-trigger-btn, .save-btn { padding:6px 8px; font-size:10px; }
+}
 </style>
 </head>
 <body>
+
+<!-- MOBILE OVERLAY -->
+<div class="mobile-overlay" id="mobileOverlay" onclick="closeMobileDrawers()"></div>
+
+<!-- BOTTOM NAV (mobile only) -->
+<nav class="bottom-nav">
+  <button class="bnav-btn" id="bnav-menu" onclick="mobileNav('menu')">
+    <span class="bnav-icon">☰</span>
+    Menu
+  </button>
+  <button class="bnav-btn" id="bnav-pages" onclick="mobileNav('pages')">
+    <span class="bnav-icon">📋</span>
+    Catatan
+  </button>
+  <button class="bnav-btn active" id="bnav-editor" onclick="mobileNav('editor')">
+    <span class="bnav-icon">✏️</span>
+    Editor
+  </button>
+  <button class="bnav-btn" id="bnav-ai" onclick="mobileNav('ai')">
+    <span class="bnav-icon">✦</span>
+    AI
+  </button>
+</nav>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -990,6 +1099,104 @@ function handleAiKeydown(e) {
 document.getElementById('aiInput').addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+});
+
+
+// ── MOBILE NAVIGATION ─────────────────────────────────────
+function isMobile() { return window.innerWidth <= 768; }
+
+function closeMobileDrawers() {
+  document.querySelector(".sidebar")?.classList.remove("open");
+  document.querySelector(".pages-panel")?.classList.remove("open");
+  document.getElementById("aiPanel")?.classList.remove("mobile-open");
+  document.getElementById("mobileOverlay")?.classList.remove("show");
+}
+
+function mobileNav(panel) {
+  if (!isMobile()) return;
+  document.querySelectorAll(".bnav-btn").forEach(b => b.classList.remove("active"));
+
+  if (panel === "menu") {
+    const sidebar = document.querySelector(".sidebar");
+    const isOpen = sidebar?.classList.contains("open");
+    closeMobileDrawers();
+    if (!isOpen) {
+      sidebar?.classList.add("open");
+      document.getElementById("mobileOverlay")?.classList.add("show");
+      document.getElementById("bnav-menu")?.classList.add("active");
+    } else {
+      document.getElementById("bnav-editor")?.classList.add("active");
+    }
+  } else if (panel === "pages") {
+    const pp = document.querySelector(".pages-panel");
+    const isOpen = pp?.classList.contains("open");
+    closeMobileDrawers();
+    if (!isOpen) {
+      pp?.classList.add("open");
+      document.getElementById("mobileOverlay")?.classList.add("show");
+      document.getElementById("bnav-pages")?.classList.add("active");
+    } else {
+      document.getElementById("bnav-editor")?.classList.add("active");
+    }
+  } else if (panel === "editor") {
+    closeMobileDrawers();
+    document.getElementById("bnav-editor")?.classList.add("active");
+  } else if (panel === "ai") {
+    const aiPanel = document.getElementById("aiPanel");
+    const isOpen = aiPanel?.classList.contains("mobile-open");
+    closeMobileDrawers();
+    if (!isOpen) {
+      aiPanel.style.display = "flex";
+      aiPanel?.classList.add("mobile-open");
+      document.getElementById("mobileOverlay")?.classList.add("show");
+      document.getElementById("bnav-ai")?.classList.add("active");
+    } else {
+      document.getElementById("bnav-editor")?.classList.add("active");
+    }
+  }
+}
+
+const _origToggleAi = toggleAiPanel;
+window.toggleAiPanel = function() {
+  if (isMobile()) { mobileNav("ai"); } else { _origToggleAi(); }
+};
+
+const _origOpenNote = openNote;
+window.openNote = function(id) {
+  _origOpenNote(id);
+  if (isMobile()) {
+    closeMobileDrawers();
+    document.getElementById("bnav-editor")?.classList.add("active");
+  }
+};
+
+const _origNewPage = newPage;
+window.newPage = function() {
+  _origNewPage();
+  if (isMobile()) {
+    closeMobileDrawers();
+    document.getElementById("bnav-editor")?.classList.add("active");
+  }
+};
+
+const _origSelectNotebook = selectNotebook;
+window.selectNotebook = function(key) {
+  _origSelectNotebook(key);
+  if (isMobile()) {
+    document.querySelector(".sidebar")?.classList.remove("open");
+    const pp = document.querySelector(".pages-panel");
+    pp?.classList.add("open");
+    document.querySelectorAll(".bnav-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("bnav-pages")?.classList.add("active");
+  }
+};
+
+window.addEventListener("resize", () => {
+  if (!isMobile()) {
+    closeMobileDrawers();
+    const aiPanel = document.getElementById("aiPanel");
+    if (aiPanel && !aiPanelOpen) aiPanel.style.display = "none";
+  }
 });
 
 // ── INIT ──────────────────────────────────────────────────
