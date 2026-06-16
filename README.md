@@ -42,11 +42,14 @@ Tambahkan di Cloudflare Pages secrets:
 - Jika ingin, gunakan `npx wrangler pages dev .` untuk menjalankan Pages lokal.
 
 ## Deploy
-1. Commit semua file ke GitHub termasuk `node_modules/`, `package.json`, dan `package-lock.json`.
-2. Hubungkan repo ke Cloudflare Pages melalui dashboard.
-3. Pages akan mendeteksi `functions/` otomatis dan dependency dari `package.json`.
-4. Set environment variables di Cloudflare Pages: `MISTRAL_API_KEY` dan `NEON_DATABASE_URL`.
-5. Publish—Pages akan langsung serve HTML statis dan worker function di route `/api/`.
+1. Commit semua file ke GitHub termasuk `package.json`, `package-lock.json`, dan `.github/workflows/pages-deploy.yml`.
+2. Pastikan repo sudah berada di branch `main`.
+3. Buat GitHub Secrets di repo:
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+4. Setelah itu, GitHub Actions akan otomatis menjalankan workflow `Deploy to Cloudflare Pages` setiap kali push ke branch `main`.
+5. Set environment variables di Cloudflare Pages: `MISTRAL_API_KEY` dan `NEON_DATABASE_URL`.
+6. Pages akan langsung serve HTML statis dan worker function di route `/api/`.
 
 ## Notes
 - `index.html` menggunakan localStorage sebagai fallback.
