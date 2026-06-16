@@ -1,9 +1,7 @@
 name = "catatan-diskusi-idadiyah"
-main = "./functions/api/notes/index.js"
-build = { command = "npm install", upload_format = "modules" }
-
-[build.upload]
-format = "modules"
+compatibility_date = "2025-06-16"
+pages_build_output_dir = "."
+build = { command = "npm install", upload = { format = "modules" } }
 
 [vars]
 # NEON_DATABASE_URL dan MISTRAL_API_KEY akan diset di Cloudflare Pages environment

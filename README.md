@@ -14,13 +14,15 @@ Aplikasi catatan diskusi yang dapat dideploy ke GitHub dan Cloudflare Pages deng
 ## Cloudflare Pages
 1. Buat repo GitHub dari folder ini.
 2. Hubungkan repo ke Cloudflare Pages.
-3. Pastikan Pages menggunakan "Root" folder repo dan tidak memerlukan build step untuk file HTML statis.
-4. Cloudflare Pages mendeteksi `functions/` secara otomatis untuk route serverless.
+3. Pastikan Pages menggunakan "Root" folder repo.
+4. Cloudflare Pages mendeteksi `functions/` secara otomatis dan akan menjalankan file di `functions/api/` sebagai route.
+5. Jangan lupa set environment variables di Pages: `MISTRAL_API_KEY` dan `NEON_DATABASE_URL`.
 
 ## Environment Variables
-Tambahkan di Cloudflare Pages:
+Tambahkan di Cloudflare Pages secrets:
 - `MISTRAL_API_KEY` — API key Mistral untuk worker AI.
-- `NEON_DATABASE_URL` — connection string Neon untuk database Neon.
+- `NEON_DATABASE_URL` — connection string Neon PostgreSQL, misalnya:
+  `postgresql://user:password@<host>:5432/<database>?sslmode=require`
 
 ## Endpoint yang tersedia
 - `/api/ai` — POST JSON dengan `prompt`, `history`, dan `model`.
@@ -29,9 +31,15 @@ Tambahkan di Cloudflare Pages:
 - `/api/notes/:id` — GET satu catatan, PUT perbarui, DELETE hapus.
 
 ## Setup Neon
+
 1. Buat database Neon dan salin `DATABASE_URL`.
-2. Set `NEON_DATABASE_URL` di Cloudflare Pages.
-3. Jalankan `sql/neon_schema.sql` di database Neon.
+2. Jalankan `sql/neon_schema.sql` di database Neon untuk membuat tabel `notes`.
+3. Set `NEON_DATABASE_URL` di Cloudflare Pages.
+4. Deploy Pages dan worker akan otomatis tersedia pada route `/api/...`.
+
+## Local testing
+- Jalankan `npm install` dalam folder repo.
+- Jika ingin, gunakan `npx wrangler pages dev .` untuk menjalankan Pages lokal.
 
 ## Deploy
 - `npm install` untuk menginstall dependency worker.
